@@ -46,6 +46,16 @@ class IssueProgressBar(totalSize: Int) extends Logging {
     ConsoleOut.outStream.println(message)
   }
 
+  def error(value: String) = {
+    newLine = true
+    clear()
+    val message =
+      s"""${(" " * 11) + ansi().fg(RED).a(value).reset().toString}
+         |--------------------------------------------------
+         |${remaining()}""".stripMargin
+    ConsoleOut.outStream.println(message)
+  }
+
   def progress(indexOfDate: Int, totalOfDate: Int) = {
     newLine = (indexOfDate == 1)
     clear()

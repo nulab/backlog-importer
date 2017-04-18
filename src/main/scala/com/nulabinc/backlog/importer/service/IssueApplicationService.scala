@@ -103,6 +103,8 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
           case Left(e) if (Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.")) =>
             logger.warn(e.getMessage, e)
           case Left(e) =>
+            val issue = issueService.issueOfId(remoteIssueId)
+            ctx.console.error(s"${Messages("import.error.comment.failed", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
             logger.error(e.getMessage, e)
             ctx.console.failed += 1
           case _ =>
