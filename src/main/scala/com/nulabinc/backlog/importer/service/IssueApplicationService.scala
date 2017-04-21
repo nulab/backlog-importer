@@ -104,7 +104,7 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
             logger.warn(e.getMessage, e)
           case Left(e) =>
             val issue = issueService.issueOfId(remoteIssueId)
-            ctx.console.error(s"${Messages("import.error.comment.failed", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
+            ctx.console.error(s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
             logger.error(e.getMessage, e)
             ctx.console.failed += 1
           case _ =>
