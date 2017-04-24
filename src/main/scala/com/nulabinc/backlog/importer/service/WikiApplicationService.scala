@@ -14,7 +14,11 @@ import scalax.file.Path
 /**
   * @author uchida
   */
-class WikiApplicationService @Inject()(backlogPaths: BacklogPaths, wikiService: WikiService, sharedFileService: SharedFileService) extends Logging {
+class WikiApplicationService @Inject()(backlogPaths: BacklogPaths,
+                                       wikiService: WikiService,
+                                       sharedFileService: SharedFileService,
+                                       attachmentService: AttachmentService)
+    extends Logging {
 
   def execute(projectId: Long, propertyResolver: PropertyResolver) = {
     val paths    = IOUtil.directoryPaths(backlogPaths.wikiDirectoryPath)
@@ -63,7 +67,7 @@ class WikiApplicationService @Inject()(backlogPaths: BacklogPaths, wikiService: 
   private[this] def postAttachments(wikiDir: Path, wiki: BacklogWiki): Seq[BacklogAttachment] = {
     val paths = wiki.attachments.flatMap(attachment => toPath(attachment, wikiDir))
     paths.flatMap { path =>
-      wikiService.postAttachment(path.path) match {
+      attachmentService.postAttachment(path.path) match {
         case Right(attachment) => Some(attachment)
         case Left(e) =>
           if (e.getMessage.contains("The size of attached file is too large."))

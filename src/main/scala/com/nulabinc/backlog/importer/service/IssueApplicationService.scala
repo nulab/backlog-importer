@@ -18,7 +18,8 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
                                         backlogPaths: BacklogPaths,
                                         sharedFileService: SharedFileService,
                                         issueService: IssueService,
-                                        commentService: CommentService)
+                                        commentService: CommentService,
+                                        attachmentService: AttachmentService)
     extends Logging {
 
   def execute(project: BacklogProject, propertyResolver: PropertyResolver) = {
@@ -119,7 +120,7 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
       val files = backlogPaths.issueAttachmentDirectoryPath(path).toAbsolute.children()
       files.find(file => file.name == fileName) match {
         case Some(filePath) =>
-          commentService.postAttachment(filePath.path) match {
+          attachmentService.postAttachment(filePath.path) match {
             case Right(attachment) => attachment.optId
             case Left(e) =>
               if (e.getMessage.indexOf("The size of attached file is too large.") >= 0)
