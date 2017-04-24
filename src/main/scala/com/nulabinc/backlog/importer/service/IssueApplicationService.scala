@@ -99,7 +99,7 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
       remoteIssueId <- ctx.toRemoteIssueId(issueId)
     } yield {
       if (!ctx.excludeIssueIds.contains(issueId)) {
-        commentService.update(commentService.setUpdateParam(remoteIssueId, path, ctx.propertyResolver, ctx.toRemoteIssueId))(comment) match {
+        commentService.update(commentService.setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path)))(comment) match {
           case Left(e) if (Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.")) =>
             logger.warn(e.getMessage, e)
           case Left(e) =>
@@ -112,6 +112,26 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
         ctx.console.progress(index + 1, size)
       }
     }
+  }
+
+  private[this] val postAttachment = (path: Path) => { (fileName: String) =>
+    {
+      val files = backlogPaths.issueAttachmentDirectoryPath(path).toAbsolute.children()
+      files.find(file => file.name == fileName) match {
+        case Some(filePath) =>
+          commentService.postAttachment(filePath.path) match {
+            case Right(attachment) => Some(attachment.id)
+            case Left(e) =>
+              if (e.getMessage.indexOf("The size of attached file is too large.") >= 0)
+                ConsoleOut.println(Messages("import.error.attachment.too_large", filePath.name))
+              else
+                ConsoleOut.println(Messages("import.error.issue.attachment", filePath.name, e.getMessage))
+              None
+          }
+        case _ => None
+
+      }
+    }: Option[Long]
   }
 
   private[this] def compareIssueJsons(path1: Path, path2: Path): Boolean = {
