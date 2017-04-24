@@ -120,7 +120,7 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
       files.find(file => file.name == fileName) match {
         case Some(filePath) =>
           commentService.postAttachment(filePath.path) match {
-            case Right(attachment) => Some(attachment.id)
+            case Right(attachment) => attachment.optId
             case Left(e) =>
               if (e.getMessage.indexOf("The size of attached file is too large.") >= 0)
                 ConsoleOut.println(Messages("import.error.attachment.too_large", filePath.name))

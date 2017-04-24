@@ -77,10 +77,7 @@ class WikiApplicationService @Inject()(backlogPaths: BacklogPaths, wikiService: 
 
   private[this] def toPath(attachment: BacklogAttachment, wikiDir: Path): Option[Path] = {
     val files = backlogPaths.wikiAttachmentPath(wikiDir).toAbsolute.children()
-    files.find(file => file.name == attachment.fileName) match {
-      case Some(file) => Some(file)
-      case _          => None
-    }
+    files.find(file => file.name == attachment.name)
   }
 
   private[this] def unmarshal(path: Path): Option[BacklogWiki] =
