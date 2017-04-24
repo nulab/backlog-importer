@@ -49,14 +49,14 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
 
   private[this] def loadJson(path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
     BacklogUnmarshaller.issue(backlogPaths.issueJson(path)) match {
-      case Some(issue: BacklogIssue)     => createIssue(issue, index, size)
+      case Some(issue: BacklogIssue)     => createIssue(issue, path, index, size)
       case Some(comment: BacklogComment) => createComment(comment, path, index, size)
       case _                             => None
     }
     ctx.console.count = ctx.console.count + 1
   }
 
-  private[this] def createIssue(issue: BacklogIssue, index: Int, size: Int)(implicit ctx: IssueContext) = {
+  private[this] def createIssue(issue: BacklogIssue, path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
     createDummyIssues(issue)
 
     if (issueService.exists(ctx.project.id, issue)) {
@@ -66,7 +66,9 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
       }
       ctx.console.warning(Messages("import.issue.already_exists", issue.optIssueKey.getOrElse(issue.id.toString)))
     } else {
-      issueService.create(issueService.setCreateParam(ctx.project.id, ctx.propertyResolver, ctx.toRemoteIssueId, issueService.issueOfId))(issue) match {
+      issueService.create(
+        issueService
+          .setCreateParam(ctx.project.id, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path), issueService.issueOfId))(issue) match {
         case Right(remoteIssue) =>
           sharedFileService.linkIssueSharedFile(remoteIssue.id, issue)
           ctx.addIssueId(issue, remoteIssue)
@@ -124,9 +126,9 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
             case Right(attachment) => attachment.optId
             case Left(e) =>
               if (e.getMessage.indexOf("The size of attached file is too large.") >= 0)
-                ConsoleOut.println(Messages("import.error.attachment.too_large", filePath.name))
+                ConsoleOut.error(Messages("import.error.attachment.too_large", filePath.name))
               else
-                ConsoleOut.println(Messages("import.error.issue.attachment", filePath.name, e.getMessage))
+                ConsoleOut.error(Messages("import.error.issue.attachment", filePath.name, e.getMessage))
               None
           }
         case _ => None
