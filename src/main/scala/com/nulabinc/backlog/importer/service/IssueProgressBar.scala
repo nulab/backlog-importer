@@ -11,14 +11,15 @@ import org.fusesource.jansi.Ansi.Color._
 /**
   * @author uchida
   */
-class IssueProgressBar(totalSize: Int) extends Logging {
+class IssueProgressBar() extends Logging {
 
-  var count   = 0
-  var failed  = 0
-  var date    = ""
-  var newLine = false
+  var totalSize = 0
+  var count     = 0
+  var failed    = 0
+  var date      = ""
 
-  val timer = (timerFunc _)()
+  private[this] var newLine = false
+  private[this] val timer   = (timerFunc _)()
 
   private[this] def timerFunc() = {
     var tempTime: Long         = System.currentTimeMillis()

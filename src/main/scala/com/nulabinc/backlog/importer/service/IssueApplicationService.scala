@@ -22,13 +22,16 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
                                         attachmentService: AttachmentService)
     extends Logging {
 
+  private[this] val console = new IssueProgressBar()
+
   def execute(project: BacklogProject, propertyResolver: PropertyResolver) = {
 
     ConsoleOut.println("""
       """.stripMargin)
 
-    val console          = new IssueProgressBar(totalSize())
-    implicit val context = IssueContext(project, propertyResolver, console)
+    console.totalSize = totalSize()
+
+    implicit val context = IssueContext(project, propertyResolver)
     val paths            = IOUtil.directoryPaths(backlogPaths.issueDirectoryPath).sortWith(_.name < _.name)
     paths.zipWithIndex.foreach {
       case (path, index) =>
@@ -38,8 +41,8 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
 
   private[this] def loadDateDirectory(path: Path, index: Int)(implicit ctx: IssueContext) = {
     val jsonDirs = path.toAbsolute.children().filter(_.isDirectory).toSeq.sortWith(compareIssueJsons)
-    ctx.console.date = DateUtil.yyyymmddToSlashFormat(path.name)
-    ctx.console.failed = 0
+    console.date = DateUtil.yyyymmddToSlashFormat(path.name)
+    console.failed = 0
 
     jsonDirs.zipWithIndex.foreach {
       case (jsonDir, index) =>
@@ -53,7 +56,7 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
       case Some(comment: BacklogComment) => createComment(comment, path, index, size)
       case _                             => None
     }
-    ctx.console.count = ctx.console.count + 1
+    console.count = console.count + 1
   }
 
   private[this] def createIssue(issue: BacklogIssue, path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
@@ -64,7 +67,7 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
       for { remoteIssue <- issueService.optIssueOfParams(ctx.project.id, issue) } yield {
         ctx.addIssueId(issue, remoteIssue)
       }
-      ctx.console.warning(Messages("import.issue.already_exists", issue.optIssueKey.getOrElse(issue.id.toString)))
+      console.warning(Messages("import.issue.already_exists", issue.optIssueKey.getOrElse(issue.id.toString)))
     } else {
       issueService.create(
         issueService
@@ -73,9 +76,9 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
           sharedFileService.linkIssueSharedFile(remoteIssue.id, issue)
           ctx.addIssueId(issue, remoteIssue)
         case _ =>
-          ctx.console.failed += 1
+          console.failed += 1
       }
-      ctx.console.progress(index + 1, size)
+      console.progress(index + 1, size)
     }
   }
 
@@ -93,7 +96,7 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
   private[this] def createDummyIssue(index: Int)(implicit ctx: IssueContext) = {
     val dummyIssue = issueService.createDummy(ctx.project.id, ctx.propertyResolver)
     issueService.delete(dummyIssue.getId)
-    ctx.console.warning(s"${Messages("import.issue.create_dummy", s"${ctx.project.key}-${index}")}")
+    console.warning(s"${Messages("import.issue.create_dummy", s"${ctx.project.key}-${index}")}")
   }
 
   private[this] def createComment(comment: BacklogComment, path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
@@ -106,13 +109,13 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
           case Left(e) if (Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.")) =>
             logger.warn(e.getMessage, e)
           case Left(e) =>
-            val issue = issueService.issueOfId(remoteIssueId)
-            ctx.console.error(s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
             logger.error(e.getMessage, e)
-            ctx.console.failed += 1
+            val issue = issueService.issueOfId(remoteIssueId)
+            console.error(s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
+            console.failed += 1
           case _ =>
         }
-        ctx.console.progress(index + 1, size)
+        console.progress(index + 1, size)
       }
     }
   }
@@ -126,9 +129,9 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
             case Right(attachment) => attachment.optId
             case Left(e) =>
               if (e.getMessage.indexOf("The size of attached file is too large.") >= 0)
-                ConsoleOut.error(Messages("import.error.attachment.too_large", filePath.name))
+                console.error(Messages("import.error.attachment.too_large", filePath.name))
               else
-                ConsoleOut.error(Messages("import.error.issue.attachment", filePath.name, e.getMessage))
+                console.error(Messages("import.error.issue.attachment", filePath.name, e.getMessage))
               None
           }
         case _ => None
