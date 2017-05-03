@@ -18,8 +18,9 @@ class IssueProgressBar() extends Logging {
   var failed    = 0
   var date      = ""
 
-  private[this] var newLine = false
-  private[this] val timer   = (timerFunc _)()
+  private[this] var newLine       = false
+  private[this] var isMessageMode = false
+  private[this] val timer         = (timerFunc _)()
 
   private[this] def timerFunc() = {
     var tempTime: Long         = System.currentTimeMillis()
@@ -37,24 +38,24 @@ class IssueProgressBar() extends Logging {
       }: String
   }
 
-  def warning(value: String) = {
-    newLine = true
-    clear()
-    val message =
-      s"""${(" " * 11) + ansi().fg(YELLOW).a(value).reset().toString}
-        |--------------------------------------------------
-        |${remaining()}""".stripMargin
-    ConsoleOut.outStream.println(message)
+  def warning(indexOfDate: Int, totalOfDate: Int, value: String) = {
+    message(indexOfDate: Int, totalOfDate: Int, value: String, YELLOW)
   }
 
-  def error(value: String) = {
-    newLine = true
+  def error(indexOfDate: Int, totalOfDate: Int, value: String) = {
+    message(indexOfDate: Int, totalOfDate: Int, value: String, RED)
+  }
+
+  private[this] def message(indexOfDate: Int, totalOfDate: Int, value: String, color: Ansi.Color) = {
     clear()
     val message =
-      s"""${(" " * 11) + ansi().fg(RED).a(value).reset().toString}
+      s"""${(" " * 11) + ansi().fg(color).a(value).reset().toString}
+         |${current(indexOfDate, totalOfDate)}
          |--------------------------------------------------
          |${remaining()}""".stripMargin
+
     ConsoleOut.outStream.println(message)
+    isMessageMode = true
   }
 
   def progress(indexOfDate: Int, totalOfDate: Int) = {
@@ -65,16 +66,18 @@ class IssueProgressBar() extends Logging {
          |--------------------------------------------------
          |${remaining()}""".stripMargin
     ConsoleOut.outStream.println(message)
+    isMessageMode = false
   }
 
   private[this] def clear() = {
-    if (newLine) {
+    if (newLine && !isMessageMode) {
       ConsoleOut.outStream.println()
     }
     (0 until 3).foreach { _ =>
       ConsoleOut.outStream.print(ansi.cursorLeft(999).cursorUp(1).eraseLine(Ansi.Erase.ALL))
     }
     ConsoleOut.outStream.flush()
+    newLine = false
   }
 
   private[this] def current(indexOfDate: Int, totalOfDate: Int): String = {

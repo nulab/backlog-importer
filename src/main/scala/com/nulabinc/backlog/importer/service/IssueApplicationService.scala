@@ -60,18 +60,19 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
   }
 
   private[this] def createIssue(issue: BacklogIssue, path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
-    createDummyIssues(issue)
+    createDummyIssues(issue, index, size)
 
     if (issueService.exists(ctx.project.id, issue)) {
       ctx.excludeIssueIds += issue.id
       for { remoteIssue <- issueService.optIssueOfParams(ctx.project.id, issue) } yield {
         ctx.addIssueId(issue, remoteIssue)
       }
-      console.warning(Messages("import.issue.already_exists", issue.optIssueKey.getOrElse(issue.id.toString)))
+      console.warning(index + 1, size, Messages("import.issue.already_exists", issue.optIssueKey.getOrElse(issue.id.toString)))
     } else {
       issueService.create(
         issueService
-          .setCreateParam(ctx.project.id, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path), issueService.issueOfId))(issue) match {
+          .setCreateParam(ctx.project.id, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path, index, size), issueService.issueOfId))(
+        issue) match {
         case Right(remoteIssue) =>
           sharedFileService.linkIssueSharedFile(remoteIssue.id, issue)
           ctx.addIssueId(issue, remoteIssue)
@@ -82,21 +83,21 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
     }
   }
 
-  private[this] def createDummyIssues(issue: BacklogIssue)(implicit ctx: IssueContext) = {
+  private[this] def createDummyIssues(issue: BacklogIssue, index: Int, size: Int)(implicit ctx: IssueContext) = {
     val optIssueIndex = issue.optIssueKey.map(IssueKeyUtil.findIssueIndex)
     for {
       prevIssueIndex <- ctx.optPrevIssueIndex
       issueIndex     <- optIssueIndex
       if ((prevIssueIndex + 1) != issueIndex)
       if (fitIssueKey)
-    } yield ((prevIssueIndex + 1) until issueIndex).foreach(createDummyIssue)
+    } yield ((prevIssueIndex + 1) until issueIndex).foreach(dummyIndex => createDummyIssue(dummyIndex, index, size))
     ctx.optPrevIssueIndex = optIssueIndex
   }
 
-  private[this] def createDummyIssue(index: Int)(implicit ctx: IssueContext) = {
+  private[this] def createDummyIssue(dummyIndex: Int, index: Int, size: Int)(implicit ctx: IssueContext) = {
     val dummyIssue = issueService.createDummy(ctx.project.id, ctx.propertyResolver)
     issueService.delete(dummyIssue.getId)
-    console.warning(s"${Messages("import.issue.create_dummy", s"${ctx.project.key}-${index}")}")
+    console.warning(index + 1, size, s"${Messages("import.issue.create_dummy", s"${ctx.project.key}-${dummyIndex}")}")
   }
 
   private[this] def createComment(comment: BacklogComment, path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
@@ -105,13 +106,16 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
       remoteIssueId <- ctx.toRemoteIssueId(issueId)
     } yield {
       if (!ctx.excludeIssueIds.contains(issueId)) {
-        commentService.update(commentService.setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path)))(comment) match {
+        commentService.update(
+          commentService
+            .setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path, index, size)))(comment) match {
           case Left(e) if (Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.")) =>
             logger.warn(e.getMessage, e)
           case Left(e) =>
             logger.error(e.getMessage, e)
             val issue = issueService.issueOfId(remoteIssueId)
-            console.error(s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
+            console
+              .error(index + 1, size, s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
             console.failed += 1
           case _ =>
         }
@@ -120,7 +124,7 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
     }
   }
 
-  private[this] val postAttachment = (path: Path) => { (fileName: String) =>
+  private[this] val postAttachment = (path: Path, index: Int, size: Int) => { (fileName: String) =>
     {
       val files = backlogPaths.issueAttachmentDirectoryPath(path).toAbsolute.children()
       files.find(file => file.name == fileName) match {
@@ -129,9 +133,9 @@ class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boole
             case Right(attachment) => attachment.optId
             case Left(e) =>
               if (e.getMessage.indexOf("The size of attached file is too large.") >= 0)
-                console.error(Messages("import.error.attachment.too_large", filePath.name))
+                console.error(index + 1, size, Messages("import.error.attachment.too_large", filePath.name))
               else
-                console.error(Messages("import.error.issue.attachment", filePath.name, e.getMessage))
+                console.error(index + 1, size, Messages("import.error.issue.attachment", filePath.name, e.getMessage))
               None
           }
         case _ => None
