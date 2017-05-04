@@ -3,7 +3,7 @@ package com.nulabinc.backlog.importer.service
 import javax.inject.{Inject, Named}
 
 import com.nulabinc.backlog.migration.conf.BacklogPaths
-import com.nulabinc.backlog.migration.converter.BacklogUnmarshaller
+import com.nulabinc.backlog.migration.convert.BacklogUnmarshaller
 import com.nulabinc.backlog.migration.domain.{BacklogComment, BacklogIssue, BacklogProject}
 import com.nulabinc.backlog.migration.service._
 import com.nulabinc.backlog.migration.utils._
