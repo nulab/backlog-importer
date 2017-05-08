@@ -3,8 +3,8 @@ package com.nulabinc.backlog.importer.controllers
 import com.google.inject.Guice
 import com.nulabinc.backlog.importer.modules.BacklogModule
 import com.nulabinc.backlog.importer.service.ProjectApplicationService
-import com.nulabinc.backlog.migration.conf.BacklogApiConfiguration
-import com.nulabinc.backlog.migration.utils.{ConsoleOut, Logging}
+import com.nulabinc.backlog.migration.common.conf.BacklogApiConfiguration
+import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, Logging}
 import com.osinka.i18n.Messages
 
 /**

@@ -2,11 +2,11 @@ package com.nulabinc.backlog.importer.service
 
 import javax.inject.{Inject, Named}
 
-import com.nulabinc.backlog.migration.conf.BacklogPaths
-import com.nulabinc.backlog.migration.convert.BacklogUnmarshaller
-import com.nulabinc.backlog.migration.domain.{BacklogComment, BacklogIssue, BacklogProject}
-import com.nulabinc.backlog.migration.service._
-import com.nulabinc.backlog.migration.utils._
+import com.nulabinc.backlog.migration.common.conf.BacklogPaths
+import com.nulabinc.backlog.migration.common.convert.BacklogUnmarshaller
+import com.nulabinc.backlog.migration.common.domain.{BacklogComment, BacklogIssue, BacklogProject}
+import com.nulabinc.backlog.migration.common.service._
+import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, IssueKeyUtil, Logging, _}
 import com.osinka.i18n.Messages
 
 import scalax.file.Path

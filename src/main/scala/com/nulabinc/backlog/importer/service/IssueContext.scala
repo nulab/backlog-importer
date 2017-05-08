@@ -1,8 +1,8 @@
 package com.nulabinc.backlog.importer.service
 
-import com.nulabinc.backlog.migration.domain.{BacklogIssue, BacklogProject}
-import com.nulabinc.backlog.migration.service.PropertyResolver
-import com.nulabinc.backlog.migration.utils.Logging
+import com.nulabinc.backlog.migration.common.domain.{BacklogIssue, BacklogProject}
+import com.nulabinc.backlog.migration.common.service.PropertyResolver
+import com.nulabinc.backlog.migration.common.utils.Logging
 
 import scala.collection.mutable
 

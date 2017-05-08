@@ -1,8 +1,8 @@
 package com.nulabinc.backlog.importer.modules
 
 import com.google.inject.name.Names
-import com.nulabinc.backlog.migration.conf.BacklogApiConfiguration
-import com.nulabinc.backlog.migration.modules.DefaultModule
+import com.nulabinc.backlog.migration.common.conf.BacklogApiConfiguration
+import com.nulabinc.backlog.migration.common.modules.DefaultModule
 
 /**
   * @author uchida

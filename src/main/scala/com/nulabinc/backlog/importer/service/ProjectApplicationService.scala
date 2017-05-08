@@ -2,11 +2,11 @@ package com.nulabinc.backlog.importer.service
 
 import javax.inject.Inject
 
-import com.nulabinc.backlog.migration.conf.BacklogPaths
-import com.nulabinc.backlog.migration.convert.BacklogUnmarshaller
-import com.nulabinc.backlog.migration.domain._
-import com.nulabinc.backlog.migration.service.{PropertyResolver, _}
-import com.nulabinc.backlog.migration.utils.{ConsoleOut, Logging, ProgressBar}
+import com.nulabinc.backlog.migration.common.conf.BacklogPaths
+import com.nulabinc.backlog.migration.common.convert.BacklogUnmarshaller
+import com.nulabinc.backlog.migration.common.domain._
+import com.nulabinc.backlog.migration.common.service.{PropertyResolver, _}
+import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, Logging, ProgressBar}
 import com.osinka.i18n.Messages
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.Ansi.ansi

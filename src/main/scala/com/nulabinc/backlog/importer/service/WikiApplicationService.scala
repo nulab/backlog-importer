@@ -2,11 +2,11 @@ package com.nulabinc.backlog.importer.service
 
 import javax.inject.Inject
 
-import com.nulabinc.backlog.migration.conf.{BacklogConstantValue, BacklogPaths}
-import com.nulabinc.backlog.migration.convert.BacklogUnmarshaller
-import com.nulabinc.backlog.migration.domain.{BacklogAttachment, BacklogWiki}
-import com.nulabinc.backlog.migration.service._
-import com.nulabinc.backlog.migration.utils.{ConsoleOut, IOUtil, Logging, ProgressBar}
+import com.nulabinc.backlog.migration.common.conf.{BacklogConstantValue, BacklogPaths}
+import com.nulabinc.backlog.migration.common.convert.BacklogUnmarshaller
+import com.nulabinc.backlog.migration.common.domain.{BacklogAttachment, BacklogWiki}
+import com.nulabinc.backlog.migration.common.service.{AttachmentService, PropertyResolver, SharedFileService, WikiService}
+import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, IOUtil, Logging, ProgressBar}
 import com.osinka.i18n.Messages
 
 import scalax.file.Path

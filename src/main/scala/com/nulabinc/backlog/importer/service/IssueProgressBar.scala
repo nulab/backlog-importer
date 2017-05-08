@@ -2,11 +2,11 @@ package com.nulabinc.backlog.importer.service
 
 import java.util.Date
 
-import com.nulabinc.backlog.migration.utils.{ConsoleOut, DateUtil, Logging, ProgressBar}
+import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, DateUtil, Logging, ProgressBar}
 import com.osinka.i18n.Messages
 import org.fusesource.jansi.Ansi
-import org.fusesource.jansi.Ansi.ansi
 import org.fusesource.jansi.Ansi.Color._
+import org.fusesource.jansi.Ansi.ansi
 
 /**
   * @author uchida
