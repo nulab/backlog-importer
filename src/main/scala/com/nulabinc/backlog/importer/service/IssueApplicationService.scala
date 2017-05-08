@@ -7,6 +7,7 @@ import com.nulabinc.backlog.migration.common.convert.BacklogUnmarshaller
 import com.nulabinc.backlog.migration.common.domain.{BacklogComment, BacklogIssue, BacklogProject}
 import com.nulabinc.backlog.migration.common.service._
 import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, IssueKeyUtil, Logging, _}
+import com.nulabinc.backlog.migration.importer.service.{IssueContext, IssueProgressBar}
 import com.osinka.i18n.Messages
 
 import scalax.file.Path
