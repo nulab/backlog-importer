@@ -1,4 +1,4 @@
-package com.nulabinc.backlog.importer.modules
+package com.nulabinc.backlog.migration.importer.modules
 
 import com.google.inject.name.Names
 import com.nulabinc.backlog.migration.common.conf.BacklogApiConfiguration

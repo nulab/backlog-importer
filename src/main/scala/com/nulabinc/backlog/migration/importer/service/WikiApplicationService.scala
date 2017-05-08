@@ -1,4 +1,4 @@
-package com.nulabinc.backlog.importer.service
+package com.nulabinc.backlog.migration.importer.service
 
 import javax.inject.Inject
 

@@ -1,10 +1,10 @@
-package com.nulabinc.backlog.importer.controllers
+package com.nulabinc.backlog.migration.importer.controllers
 
 import com.google.inject.Guice
-import com.nulabinc.backlog.importer.modules.BacklogModule
-import com.nulabinc.backlog.importer.service.ProjectApplicationService
 import com.nulabinc.backlog.migration.common.conf.BacklogApiConfiguration
 import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, Logging}
+import com.nulabinc.backlog.migration.importer.modules.BacklogModule
+import com.nulabinc.backlog.migration.importer.service.ProjectApplicationService
 import com.osinka.i18n.Messages
 
 /**
