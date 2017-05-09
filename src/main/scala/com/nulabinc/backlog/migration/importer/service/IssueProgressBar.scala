@@ -11,7 +11,7 @@ import org.fusesource.jansi.Ansi.ansi
 /**
   * @author uchida
   */
-class IssueProgressBar() extends Logging {
+private[importer] class IssueProgressBar() extends Logging {
 
   var totalSize = 0
   var count     = 0

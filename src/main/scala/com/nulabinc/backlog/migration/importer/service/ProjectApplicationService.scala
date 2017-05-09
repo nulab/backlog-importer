@@ -14,20 +14,20 @@ import org.fusesource.jansi.Ansi.ansi
 /**
   * @author uchida
   */
-class ProjectApplicationService @Inject()(backlogPaths: BacklogPaths,
-                                          groupService: GroupService,
-                                          projectService: ProjectService,
-                                          versionService: VersionService,
-                                          projectUserService: ProjectUserService,
-                                          issueTypeService: IssueTypeService,
-                                          issueCategoryService: IssueCategoryService,
-                                          customFieldSettingService: CustomFieldSettingService,
-                                          wikiApplicationService: WikiApplicationService,
-                                          issueApplicationService: IssueApplicationService,
-                                          resolutionService: ResolutionService,
-                                          userService: UserService,
-                                          statusService: StatusService,
-                                          priorityService: PriorityService)
+private[importer] class ProjectApplicationService @Inject()(backlogPaths: BacklogPaths,
+                                                            groupService: GroupService,
+                                                            projectService: ProjectService,
+                                                            versionService: VersionService,
+                                                            projectUserService: ProjectUserService,
+                                                            issueTypeService: IssueTypeService,
+                                                            issueCategoryService: IssueCategoryService,
+                                                            customFieldSettingService: CustomFieldSettingService,
+                                                            wikiApplicationService: WikiApplicationService,
+                                                            issueApplicationService: IssueApplicationService,
+                                                            resolutionService: ResolutionService,
+                                                            userService: UserService,
+                                                            statusService: StatusService,
+                                                            priorityService: PriorityService)
     extends Logging {
 
   def execute() = {
