@@ -49,7 +49,7 @@ private[importer] class IssueProgressBar() extends Logging {
   private[this] def message(indexOfDate: Int, totalOfDate: Int, value: String, color: Ansi.Color) = {
     clear()
     val message =
-      s"""${(" " * 11) + ansi().fg(color).a(value).reset().toString}
+      s"""${(" " * 11) + ansi().fg(color).a(value.replaceAll("\n", "")).reset().toString}
          |${current(indexOfDate, totalOfDate)}
          |--------------------------------------------------
          |${remaining()}""".stripMargin
