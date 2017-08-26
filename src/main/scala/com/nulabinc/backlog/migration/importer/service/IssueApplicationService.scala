@@ -97,7 +97,7 @@ private[importer] class IssueApplicationService @Inject()(@Named("fitIssueKey") 
   private[this] def createDummyIssue(dummyIndex: Int, index: Int, size: Int)(implicit ctx: IssueContext) = {
     val dummyIssue = issueService.createDummy(ctx.project.id, ctx.propertyResolver)
     issueService.delete(dummyIssue.getId)
-    console.warning(index + 1, size, s"${Messages("import.issue.create_dummy", s"${ctx.project.key}-${dummyIndex}")}")
+    logger.warn(s"${Messages("import.issue.create_dummy", s"${ctx.project.key}-${dummyIndex}")}")
   }
 
   private[this] def createComment(comment: BacklogComment, path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
@@ -107,8 +107,7 @@ private[importer] class IssueApplicationService @Inject()(@Named("fitIssueKey") 
     } yield {
       if (!ctx.excludeIssueIds.contains(issueId)) {
         commentService.update(
-          commentService
-            .setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path, index, size)))(comment) match {
+          commentService.setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path, index, size)))(comment) match {
           case Left(e) if (Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.")) =>
             logger.warn(e.getMessage, e)
           case Left(e) =>
