@@ -1,4 +1,4 @@
-package com.nulabinc.backlog.migration.importer.controllers
+package com.nulabinc.backlog.migration.importer.core
 
 import com.google.inject.Guice
 import com.nulabinc.backlog.migration.common.conf.BacklogApiConfiguration
@@ -10,7 +10,7 @@ import com.osinka.i18n.Messages
 /**
   * @author uchida
   */
-object ImportController extends Logging {
+object Boot extends Logging {
 
   def execute(apiConfig: BacklogApiConfiguration, fitIssueKey: Boolean) = {
 
