@@ -31,33 +31,30 @@ private[importer] class ProjectApplicationService @Inject()(backlogPaths: Backlo
     extends Logging {
 
   def execute() = {
-    for {
-      project <- BacklogUnmarshaller.project(backlogPaths)
-    } yield {
-      projectService.create(project) match {
-        case Right(project) =>
-          preExecute()
-          contents(project)
-          postExecute()
+    val project = BacklogUnmarshaller.project(backlogPaths)
+    projectService.create(project) match {
+      case Right(project) =>
+        preExecute()
+        contents(project)
+        postExecute()
 
-          ConsoleOut.outStream.print(ansi.cursorLeft(999).cursorUp(1).eraseLine(Ansi.Erase.ALL))
-          ConsoleOut.outStream.print(ansi.cursorLeft(999).cursorUp(1).eraseLine(Ansi.Erase.ALL))
-          ConsoleOut.outStream.flush()
+        ConsoleOut.outStream.print(ansi.cursorLeft(999).cursorUp(1).eraseLine(Ansi.Erase.ALL))
+        ConsoleOut.outStream.print(ansi.cursorLeft(999).cursorUp(1).eraseLine(Ansi.Erase.ALL))
+        ConsoleOut.outStream.flush()
 
-          ConsoleOut.println(s"""|--------------------------------------------------
-                                 |${Messages("import.finish")}""".stripMargin)
-        case Left(e) =>
-          if (e.getMessage.contains("Project limit."))
-            ConsoleOut.error(Messages("import.error.limit.project", project.key))
-          else if (e.getMessage.contains("Duplicate entry"))
-            ConsoleOut.error(Messages("import.error.project.not.join", project.key))
-          else {
-            logger.error(e.getMessage, e)
-            ConsoleOut.error(Messages("import.error.failed.import", project.key, e.getMessage))
-          }
-          ConsoleOut.println(s"""|--------------------------------------------------
-                                 |${Messages("import.suspend")}""".stripMargin)
-      }
+        ConsoleOut.println(s"""|--------------------------------------------------
+                               |${Messages("import.finish")}""".stripMargin)
+      case Left(e) =>
+        if (e.getMessage.contains("Project limit."))
+          ConsoleOut.error(Messages("import.error.limit.project", project.key))
+        else if (e.getMessage.contains("Duplicate entry"))
+          ConsoleOut.error(Messages("import.error.project.not.join", project.key))
+        else {
+          logger.error(e.getMessage, e)
+          ConsoleOut.error(Messages("import.error.failed.import", project.key, e.getMessage))
+        }
+        ConsoleOut.println(s"""|--------------------------------------------------
+                               |${Messages("import.suspend")}""".stripMargin)
     }
   }
 
