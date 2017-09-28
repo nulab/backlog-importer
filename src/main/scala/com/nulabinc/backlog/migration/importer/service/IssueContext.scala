@@ -9,7 +9,7 @@ import scala.collection.mutable
 /**
   * @author uchida
   */
-private[importer] case class IssueContext(project: BacklogProject, propertyResolver: PropertyResolver) extends Logging {
+private[importer] case class IssueContext(project: BacklogProject, propertyResolver: PropertyResolver, fitIssueKey: Boolean) extends Logging {
 
   var optPrevIssueIndex: Option[Int]             = None
   val toRemoteIssueId                            = (localIssueId: Long) => issueIdMap.get(localIssueId): Option[Long]

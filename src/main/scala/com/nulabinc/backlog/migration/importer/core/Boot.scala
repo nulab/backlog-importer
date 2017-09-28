@@ -14,14 +14,14 @@ object Boot extends Logging {
 
   def execute(apiConfig: BacklogApiConfiguration, fitIssueKey: Boolean) = {
 
-    val injector = Guice.createInjector(new BacklogModule(apiConfig, fitIssueKey))
+    val injector = Guice.createInjector(new BacklogModule(apiConfig))
 
     ConsoleOut.println(s"""
          |${Messages("import.start")}
          |--------------------------------------------------""".stripMargin)
 
     val projectImporter = injector.getInstance(classOf[ProjectImporter])
-    projectImporter.execute()
+    projectImporter.execute(fitIssueKey)
 
   }
 

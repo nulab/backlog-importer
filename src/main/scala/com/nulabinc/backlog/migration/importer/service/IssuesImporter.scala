@@ -14,8 +14,7 @@ import scalax.file.Path
 /**
   * @author uchida
   */
-private[importer] class IssuesImporter @Inject()(@Named("fitIssueKey") fitIssueKey: Boolean,
-                                                 backlogPaths: BacklogPaths,
+private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
                                                  sharedFileService: SharedFileService,
                                                  issueService: IssueService,
                                                  commentService: CommentService,
@@ -24,14 +23,14 @@ private[importer] class IssuesImporter @Inject()(@Named("fitIssueKey") fitIssueK
 
   private[this] val console = new IssueProgressBar()
 
-  def execute(project: BacklogProject, propertyResolver: PropertyResolver) = {
+  def execute(project: BacklogProject, propertyResolver: PropertyResolver, fitIssueKey: Boolean) = {
 
     ConsoleOut.println("""
       """.stripMargin)
 
     console.totalSize = totalSize()
 
-    implicit val context = IssueContext(project, propertyResolver)
+    implicit val context = IssueContext(project, propertyResolver, fitIssueKey)
     val paths            = IOUtil.directoryPaths(backlogPaths.issueDirectoryPath).sortWith(_.name < _.name)
     paths.zipWithIndex.foreach {
       case (path, index) =>
@@ -89,7 +88,7 @@ private[importer] class IssuesImporter @Inject()(@Named("fitIssueKey") fitIssueK
       prevIssueIndex <- ctx.optPrevIssueIndex
       issueIndex     <- optIssueIndex
       if ((prevIssueIndex + 1) != issueIndex)
-      if (fitIssueKey)
+      if (ctx.fitIssueKey)
     } yield ((prevIssueIndex + 1) until issueIndex).foreach(dummyIndex => createDummyIssue(dummyIndex, index, size))
     ctx.optPrevIssueIndex = optIssueIndex
   }
