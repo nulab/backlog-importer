@@ -14,10 +14,10 @@ import scalax.file.Path
 /**
   * @author uchida
   */
-private[importer] class WikiApplicationService @Inject()(backlogPaths: BacklogPaths,
-                                                         wikiService: WikiService,
-                                                         sharedFileService: SharedFileService,
-                                                         attachmentService: AttachmentService)
+private[importer] class WikisImporter @Inject()(backlogPaths: BacklogPaths,
+                                                wikiService: WikiService,
+                                                sharedFileService: SharedFileService,
+                                                attachmentService: AttachmentService)
     extends Logging {
 
   def execute(projectId: Long, propertyResolver: PropertyResolver) = {

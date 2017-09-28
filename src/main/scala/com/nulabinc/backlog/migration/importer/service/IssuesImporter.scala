@@ -14,12 +14,12 @@ import scalax.file.Path
 /**
   * @author uchida
   */
-private[importer] class IssueApplicationService @Inject()(@Named("fitIssueKey") fitIssueKey: Boolean,
-                                                          backlogPaths: BacklogPaths,
-                                                          sharedFileService: SharedFileService,
-                                                          issueService: IssueService,
-                                                          commentService: CommentService,
-                                                          attachmentService: AttachmentService)
+private[importer] class IssuesImporter @Inject()(@Named("fitIssueKey") fitIssueKey: Boolean,
+                                                 backlogPaths: BacklogPaths,
+                                                 sharedFileService: SharedFileService,
+                                                 issueService: IssueService,
+                                                 commentService: CommentService,
+                                                 attachmentService: AttachmentService)
     extends Logging {
 
   private[this] val console = new IssueProgressBar()

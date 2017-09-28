@@ -4,7 +4,7 @@ import com.google.inject.Guice
 import com.nulabinc.backlog.migration.common.conf.BacklogApiConfiguration
 import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, Logging}
 import com.nulabinc.backlog.migration.importer.modules.BacklogModule
-import com.nulabinc.backlog.migration.importer.service.ProjectApplicationService
+import com.nulabinc.backlog.migration.importer.service.ProjectImporter
 import com.osinka.i18n.Messages
 
 /**
@@ -20,8 +20,8 @@ object Boot extends Logging {
          |${Messages("import.start")}
          |--------------------------------------------------""".stripMargin)
 
-    val service = injector.getInstance(classOf[ProjectApplicationService])
-    service.execute()
+    val projectImporter = injector.getInstance(classOf[ProjectImporter])
+    projectImporter.execute()
 
   }
 

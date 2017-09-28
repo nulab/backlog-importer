@@ -14,20 +14,20 @@ import org.fusesource.jansi.Ansi.ansi
 /**
   * @author uchida
   */
-private[importer] class ProjectApplicationService @Inject()(backlogPaths: BacklogPaths,
-                                                            groupService: GroupService,
-                                                            projectService: ProjectService,
-                                                            versionService: VersionService,
-                                                            projectUserService: ProjectUserService,
-                                                            issueTypeService: IssueTypeService,
-                                                            issueCategoryService: IssueCategoryService,
-                                                            customFieldSettingService: CustomFieldSettingService,
-                                                            wikiApplicationService: WikiApplicationService,
-                                                            issueApplicationService: IssueApplicationService,
-                                                            resolutionService: ResolutionService,
-                                                            userService: UserService,
-                                                            statusService: StatusService,
-                                                            priorityService: PriorityService)
+private[importer] class ProjectImporter @Inject()(backlogPaths: BacklogPaths,
+                                                  groupService: GroupService,
+                                                  projectService: ProjectService,
+                                                  versionService: VersionService,
+                                                  projectUserService: ProjectUserService,
+                                                  issueTypeService: IssueTypeService,
+                                                  issueCategoryService: IssueCategoryService,
+                                                  customFieldSettingService: CustomFieldSettingService,
+                                                  wikisImporter: WikisImporter,
+                                                  issuesImporter: IssuesImporter,
+                                                  resolutionService: ResolutionService,
+                                                  userService: UserService,
+                                                  statusService: StatusService,
+                                                  priorityService: PriorityService)
     extends Logging {
 
   def execute() = {
@@ -62,10 +62,10 @@ private[importer] class ProjectApplicationService @Inject()(backlogPaths: Backlo
     val propertyResolver = buildPropertyResolver()
 
     //Wiki
-    wikiApplicationService.execute(project.id, propertyResolver)
+    wikisImporter.execute(project.id, propertyResolver)
 
     //Issue
-    issueApplicationService.execute(project, propertyResolver)
+    issuesImporter.execute(project, propertyResolver)
   }
 
   private[this] def preExecute() = {
