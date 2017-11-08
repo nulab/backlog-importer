@@ -13,16 +13,19 @@ import com.osinka.i18n.Messages
 object Boot extends Logging {
 
   def execute(apiConfig: BacklogApiConfiguration, fitIssueKey: Boolean) = {
+    try {
+      val injector = Guice.createInjector(new BacklogModule(apiConfig))
+      ConsoleOut.println(s"""
+                            |${Messages("import.start")}
+                            |--------------------------------------------------""".stripMargin)
 
-    val injector = Guice.createInjector(new BacklogModule(apiConfig))
-
-    ConsoleOut.println(s"""
-         |${Messages("import.start")}
-         |--------------------------------------------------""".stripMargin)
-
-    val projectImporter = injector.getInstance(classOf[ProjectImporter])
-    projectImporter.execute(fitIssueKey)
-
+      val projectImporter = injector.getInstance(classOf[ProjectImporter])
+      projectImporter.execute(fitIssueKey)
+    } catch {
+      case e: Throwable =>
+        ConsoleOut.error(s"${Messages("cli.error.unknown")}:${e.getMessage}")
+        throw e
+    }
   }
 
 }
