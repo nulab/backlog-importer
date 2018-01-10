@@ -59,6 +59,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
   }
 
   private[this] def createIssue(issue: BacklogIssue, path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
+    val prevSuccessIssueId = ctx.optPrevIssueIndex
     createDummyIssues(issue, index, size)
 
     if (issueService.exists(ctx.project.id, issue)) {
@@ -76,6 +77,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
           sharedFileService.linkIssueSharedFile(remoteIssue.id, issue)
           ctx.addIssueId(issue, remoteIssue)
         case _ =>
+          ctx.optPrevIssueIndex = prevSuccessIssueId
           console.failed += 1
       }
       console.progress(index + 1, size)
