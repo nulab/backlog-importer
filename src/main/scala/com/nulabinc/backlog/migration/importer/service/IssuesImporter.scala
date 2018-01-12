@@ -7,6 +7,7 @@ import com.nulabinc.backlog.migration.common.convert.BacklogUnmarshaller
 import com.nulabinc.backlog.migration.common.domain.{BacklogComment, BacklogIssue, BacklogProject}
 import com.nulabinc.backlog.migration.common.service._
 import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, IssueKeyUtil, Logging, _}
+import com.nulabinc.backlog4j.api.option.ImportDeleteAttachmentParams
 import com.osinka.i18n.Messages
 
 import scalax.file.Path
@@ -107,17 +108,36 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
       remoteIssueId <- ctx.toRemoteIssueId(issueId)
     } yield {
       if (!ctx.excludeIssueIds.contains(issueId)) {
-        commentService.update(
-          commentService.setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path, index, size)))(comment) match {
-          case Left(e) if (Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.")) =>
-            logger.warn(e.getMessage, e)
-          case Left(e) =>
-            logger.error(e.getMessage, e)
-            val issue = issueService.issueOfId(remoteIssueId)
-            console
-              .error(index + 1, size, s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
-            console.failed += 1
-          case _ =>
+        if (comment.changeLogs.exists(_.mustDeleteAttachment)) {
+          // DELETE ATTACHMENT API
+          comment.changeLogs
+            .filter { _.mustDeleteAttachment }
+            .map { changeLog =>
+              for {
+                attachmentInfo      <- changeLog.optAttachmentInfo
+                attachmentId        <- attachmentInfo.optId
+                createdUser         <- comment.optCreatedUser
+                createdUserId       <- createdUser.optUserId
+                solvedCreatedUserId <- ctx.propertyResolver.optResolvedUserId(createdUserId)
+                created             <- comment.optCreated
+              } yield {
+                issueService.deleteAttachment(issueId, attachmentId, solvedCreatedUserId, created)
+              }
+            }
+          println(comment)
+        } else {
+          commentService.update(
+            commentService.setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path, index, size)))(comment) match {
+            case Left(e) if (Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.")) =>
+              logger.warn(e.getMessage, e)
+            case Left(e) =>
+              logger.error(e.getMessage, e)
+              val issue = issueService.issueOfId(remoteIssueId)
+              console
+                .error(index + 1, size, s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
+              console.failed += 1
+            case _ =>
+          }
         }
         console.progress(index + 1, size)
       }
