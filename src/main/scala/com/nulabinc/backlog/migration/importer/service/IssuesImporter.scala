@@ -4,7 +4,7 @@ import javax.inject.Inject
 
 import com.nulabinc.backlog.migration.common.conf.BacklogPaths
 import com.nulabinc.backlog.migration.common.convert.BacklogUnmarshaller
-import com.nulabinc.backlog.migration.common.domain.{BacklogComment, BacklogIssue, BacklogProject}
+import com.nulabinc.backlog.migration.common.domain.{BacklogAttachment, BacklogComment, BacklogIssue, BacklogProject}
 import com.nulabinc.backlog.migration.common.service._
 import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, IssueKeyUtil, Logging, _}
 import com.nulabinc.backlog4j.api.option.ImportDeleteAttachmentParams
@@ -109,26 +109,29 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
     } yield {
       if (!ctx.excludeIssueIds.contains(issueId)) {
         if (comment.changeLogs.exists(_.mustDeleteAttachment)) {
-          // DELETE ATTACHMENT API
           comment.changeLogs
             .filter { _.mustDeleteAttachment }
             .map { changeLog =>
+              val issueAttachments = attachmentService.allAttachmentsOfIssue(remoteIssueId) match {
+                case Right(attachments) => attachments
+                case Left(_) => Seq.empty[BacklogAttachment]
+              }
               for {
                 attachmentInfo      <- changeLog.optAttachmentInfo
-                attachmentId        <- attachmentInfo.optId
+                attachment          <- issueAttachments.find(_.name == attachmentInfo.name)
+                attachmentId        <- attachment.optId
                 createdUser         <- comment.optCreatedUser
                 createdUserId       <- createdUser.optUserId
                 solvedCreatedUserId <- ctx.propertyResolver.optResolvedUserId(createdUserId)
                 created             <- comment.optCreated
               } yield {
-                issueService.deleteAttachment(issueId, attachmentId, solvedCreatedUserId, created)
+                issueService.deleteAttachment(remoteIssueId, attachmentId, solvedCreatedUserId, created)
               }
             }
-          println(comment)
         } else {
           commentService.update(
             commentService.setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path, index, size)))(comment) match {
-            case Left(e) if (Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.")) =>
+            case Left(e) if Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.") =>
               logger.warn(e.getMessage, e)
             case Left(e) =>
               logger.error(e.getMessage, e)
