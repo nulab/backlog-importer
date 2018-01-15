@@ -118,7 +118,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
               }
               for {
                 attachmentInfo      <- changeLog.optAttachmentInfo
-                attachment          <- issueAttachments.find(_.name == attachmentInfo.name)
+                attachment          <- issueAttachments.sortBy(_.optId).find(_.name == attachmentInfo.name)
                 attachmentId        <- attachment.optId
                 createdUser         <- comment.optCreatedUser
                 createdUserId       <- createdUser.optUserId
