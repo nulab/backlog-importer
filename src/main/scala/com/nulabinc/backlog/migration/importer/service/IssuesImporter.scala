@@ -4,9 +4,10 @@ import javax.inject.Inject
 
 import com.nulabinc.backlog.migration.common.conf.BacklogPaths
 import com.nulabinc.backlog.migration.common.convert.BacklogUnmarshaller
-import com.nulabinc.backlog.migration.common.domain.{BacklogComment, BacklogIssue, BacklogProject}
+import com.nulabinc.backlog.migration.common.domain.{BacklogAttachment, BacklogComment, BacklogIssue, BacklogProject}
 import com.nulabinc.backlog.migration.common.service._
 import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, IssueKeyUtil, Logging, _}
+import com.nulabinc.backlog4j.api.option.ImportDeleteAttachmentParams
 import com.osinka.i18n.Messages
 
 import scalax.file.Path
@@ -59,6 +60,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
   }
 
   private[this] def createIssue(issue: BacklogIssue, path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
+    val prevSuccessIssueId = ctx.optPrevIssueIndex
     createDummyIssues(issue, index, size)
 
     if (issueService.exists(ctx.project.id, issue)) {
@@ -76,19 +78,20 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
           sharedFileService.linkIssueSharedFile(remoteIssue.id, issue)
           ctx.addIssueId(issue, remoteIssue)
         case _ =>
+          ctx.optPrevIssueIndex = prevSuccessIssueId
           console.failed += 1
       }
       console.progress(index + 1, size)
     }
   }
 
-  private[this] def createDummyIssues(issue: BacklogIssue, index: Int, size: Int)(implicit ctx: IssueContext) = {
+  private[this] def createDummyIssues(issue: BacklogIssue, index: Int, size: Int)(implicit ctx: IssueContext): Unit = {
     val optIssueIndex = issue.optIssueKey.map(IssueKeyUtil.findIssueIndex)
     for {
       prevIssueIndex <- ctx.optPrevIssueIndex
       issueIndex     <- optIssueIndex
-      if ((prevIssueIndex + 1) != issueIndex)
-      if (ctx.fitIssueKey)
+      if (prevIssueIndex + 1) != issueIndex
+      if ctx.fitIssueKey
     } yield ((prevIssueIndex + 1) until issueIndex).foreach(dummyIndex => createDummyIssue(dummyIndex, index, size))
     ctx.optPrevIssueIndex = optIssueIndex
   }
@@ -100,22 +103,51 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
   }
 
   private[this] def createComment(comment: BacklogComment, path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
+
+    def updateComment(remoteIssueId: Long): Unit = {
+      commentService.update(
+        commentService.setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path, index, size)))(comment) match {
+        case Left(e) if Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.") =>
+          logger.warn(e.getMessage, e)
+        case Left(e) =>
+          logger.error(e.getMessage, e)
+          val issue = issueService.issueOfId(remoteIssueId)
+          console
+            .error(index + 1, size, s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
+          console.failed += 1
+        case _ =>
+      }
+    }
+
+    def deleteAttachment(remoteIssueId: Long) = comment.changeLogs
+      .filter { _.mustDeleteAttachment }
+      .map { changeLog =>
+        val issueAttachments = attachmentService.allAttachmentsOfIssue(remoteIssueId) match {
+          case Right(attachments) => attachments
+          case Left(_) => Seq.empty[BacklogAttachment]
+        }
+        for {
+          attachmentInfo <- changeLog.optAttachmentInfo
+          attachment <- issueAttachments.sortBy(_.optId).find(_.name == attachmentInfo.name)
+          attachmentId <- attachment.optId
+          createdUser <- comment.optCreatedUser
+          createdUserId <- createdUser.optUserId
+          solvedCreatedUserId <- ctx.propertyResolver.optResolvedUserId(createdUserId)
+          created <- comment.optCreated
+        } yield {
+          issueService.deleteAttachment(remoteIssueId, attachmentId, solvedCreatedUserId, created)
+        }
+      }
+
     for {
       issueId       <- comment.optIssueId
       remoteIssueId <- ctx.toRemoteIssueId(issueId)
     } yield {
       if (!ctx.excludeIssueIds.contains(issueId)) {
-        commentService.update(
-          commentService.setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path, index, size)))(comment) match {
-          case Left(e) if (Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.")) =>
-            logger.warn(e.getMessage, e)
-          case Left(e) =>
-            logger.error(e.getMessage, e)
-            val issue = issueService.issueOfId(remoteIssueId)
-            console
-              .error(index + 1, size, s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
-            console.failed += 1
-          case _ =>
+        if (comment.changeLogs.exists(_.mustDeleteAttachment)) {
+          deleteAttachment(remoteIssueId)
+        } else {
+          updateComment(remoteIssueId)
         }
         console.progress(index + 1, size)
       }
