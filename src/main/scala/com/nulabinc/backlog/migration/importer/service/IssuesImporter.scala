@@ -103,44 +103,51 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
   }
 
   private[this] def createComment(comment: BacklogComment, path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
+
+    def updateComment(remoteIssueId: Long): Unit = {
+      commentService.update(
+        commentService.setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path, index, size)))(comment) match {
+        case Left(e) if Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.") =>
+          logger.warn(e.getMessage, e)
+        case Left(e) =>
+          logger.error(e.getMessage, e)
+          val issue = issueService.issueOfId(remoteIssueId)
+          console
+            .error(index + 1, size, s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
+          console.failed += 1
+        case _ =>
+      }
+    }
+
+    def deleteAttachment(remoteIssueId: Long) = comment.changeLogs
+      .filter { _.mustDeleteAttachment }
+      .map { changeLog =>
+        val issueAttachments = attachmentService.allAttachmentsOfIssue(remoteIssueId) match {
+          case Right(attachments) => attachments
+          case Left(_) => Seq.empty[BacklogAttachment]
+        }
+        for {
+          attachmentInfo <- changeLog.optAttachmentInfo
+          attachment <- issueAttachments.sortBy(_.optId).find(_.name == attachmentInfo.name)
+          attachmentId <- attachment.optId
+          createdUser <- comment.optCreatedUser
+          createdUserId <- createdUser.optUserId
+          solvedCreatedUserId <- ctx.propertyResolver.optResolvedUserId(createdUserId)
+          created <- comment.optCreated
+        } yield {
+          issueService.deleteAttachment(remoteIssueId, attachmentId, solvedCreatedUserId, created)
+        }
+      }
+
     for {
       issueId       <- comment.optIssueId
       remoteIssueId <- ctx.toRemoteIssueId(issueId)
     } yield {
       if (!ctx.excludeIssueIds.contains(issueId)) {
         if (comment.changeLogs.exists(_.mustDeleteAttachment)) {
-          comment.changeLogs
-            .filter { _.mustDeleteAttachment }
-            .map { changeLog =>
-              val issueAttachments = attachmentService.allAttachmentsOfIssue(remoteIssueId) match {
-                case Right(attachments) => attachments
-                case Left(_) => Seq.empty[BacklogAttachment]
-              }
-              for {
-                attachmentInfo      <- changeLog.optAttachmentInfo
-                attachment          <- issueAttachments.sortBy(_.optId).find(_.name == attachmentInfo.name)
-                attachmentId        <- attachment.optId
-                createdUser         <- comment.optCreatedUser
-                createdUserId       <- createdUser.optUserId
-                solvedCreatedUserId <- ctx.propertyResolver.optResolvedUserId(createdUserId)
-                created             <- comment.optCreated
-              } yield {
-                issueService.deleteAttachment(remoteIssueId, attachmentId, solvedCreatedUserId, created)
-              }
-            }
+          deleteAttachment(remoteIssueId)
         } else {
-          commentService.update(
-            commentService.setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path, index, size)))(comment) match {
-            case Left(e) if Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.") =>
-              logger.warn(e.getMessage, e)
-            case Left(e) =>
-              logger.error(e.getMessage, e)
-              val issue = issueService.issueOfId(remoteIssueId)
-              console
-                .error(index + 1, size, s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
-              console.failed += 1
-            case _ =>
-          }
+          updateComment(remoteIssueId)
         }
         console.progress(index + 1, size)
       }
