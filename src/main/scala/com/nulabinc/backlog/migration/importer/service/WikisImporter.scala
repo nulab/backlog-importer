@@ -2,14 +2,13 @@ package com.nulabinc.backlog.migration.importer.service
 
 import javax.inject.Inject
 
+import better.files.{File => Path}
 import com.nulabinc.backlog.migration.common.conf.{BacklogConstantValue, BacklogPaths}
 import com.nulabinc.backlog.migration.common.convert.BacklogUnmarshaller
 import com.nulabinc.backlog.migration.common.domain.{BacklogAttachment, BacklogWiki}
 import com.nulabinc.backlog.migration.common.service.{AttachmentService, PropertyResolver, SharedFileService, WikiService}
 import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, IOUtil, Logging, ProgressBar}
 import com.osinka.i18n.Messages
-
-import scalax.file.Path
 
 /**
   * @author uchida
@@ -67,7 +66,7 @@ private[importer] class WikisImporter @Inject()(backlogPaths: BacklogPaths,
   private[this] def postAttachments(wikiDir: Path, wiki: BacklogWiki): Seq[BacklogAttachment] = {
     val paths = wiki.attachments.flatMap(attachment => toPath(attachment, wikiDir))
     paths.flatMap { path =>
-      attachmentService.postAttachment(path.path) match {
+      attachmentService.postAttachment(path.pathAsString) match {
         case Right(attachment) => Some(attachment)
         case Left(e) =>
           if (e.getMessage.contains("The size of attached file is too large."))
@@ -80,7 +79,7 @@ private[importer] class WikisImporter @Inject()(backlogPaths: BacklogPaths,
   }
 
   private[this] def toPath(attachment: BacklogAttachment, wikiDir: Path): Option[Path] = {
-    val files = backlogPaths.wikiAttachmentPath(wikiDir).toAbsolute.children()
+    val files = backlogPaths.wikiAttachmentPath(wikiDir).listRecursively
     files.find(file => file.name == attachment.name)
   }
 

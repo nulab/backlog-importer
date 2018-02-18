@@ -2,6 +2,7 @@ package com.nulabinc.backlog.migration.importer.service
 
 import javax.inject.Inject
 
+import better.files.{File => Path}
 import com.nulabinc.backlog.migration.common.conf.BacklogPaths
 import com.nulabinc.backlog.migration.common.convert.BacklogUnmarshaller
 import com.nulabinc.backlog.migration.common.domain.{BacklogAttachment, BacklogComment, BacklogIssue, BacklogProject}
@@ -9,8 +10,6 @@ import com.nulabinc.backlog.migration.common.service._
 import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, IssueKeyUtil, Logging, _}
 import com.nulabinc.backlog4j.api.option.ImportDeleteAttachmentParams
 import com.osinka.i18n.Messages
-
-import scalax.file.Path
 
 /**
   * @author uchida
@@ -40,7 +39,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
   }
 
   private[this] def loadDateDirectory(path: Path, index: Int)(implicit ctx: IssueContext) = {
-    val jsonDirs = path.toAbsolute.children().filter(_.isDirectory).toSeq.sortWith(compareIssueJsons)
+    val jsonDirs = path.listRecursively.filter(_.isDirectory).toSeq.sortWith(compareIssueJsons)
     console.date = DateUtil.yyyymmddToSlashFormat(path.name)
     console.failed = 0
 
@@ -156,10 +155,10 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
 
   private[this] val postAttachment = (path: Path, index: Int, size: Int) => { (fileName: String) =>
     {
-      val files = backlogPaths.issueAttachmentDirectoryPath(path).toAbsolute.children()
+      val files = backlogPaths.issueAttachmentDirectoryPath(path).listRecursively
       files.find(file => file.name == fileName) match {
         case Some(filePath) =>
-          attachmentService.postAttachment(filePath.path) match {
+          attachmentService.postAttachment(filePath.pathAsString) match {
             case Right(attachment) => attachment.optId
             case Left(e) =>
               if (e.getMessage.indexOf("The size of attached file is too large.") >= 0)
@@ -195,7 +194,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
   private[this] def totalSize(): Int = {
     val paths = IOUtil.directoryPaths(backlogPaths.issueDirectoryPath)
     paths.foldLeft(0) { (count, path) =>
-      count + path.toAbsolute.children().size
+      count + path.listRecursively.size
     }
   }
 
