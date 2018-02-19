@@ -39,7 +39,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
   }
 
   private[this] def loadDateDirectory(path: Path, index: Int)(implicit ctx: IssueContext) = {
-    val jsonDirs = path.listRecursively.filter(_.isDirectory).toSeq.sortWith(compareIssueJsons)
+    val jsonDirs = path.list.filter(_.isDirectory).toSeq.sortWith(compareIssueJsons)
     console.date = DateUtil.yyyymmddToSlashFormat(path.name)
     console.failed = 0
 
@@ -155,7 +155,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
 
   private[this] val postAttachment = (path: Path, index: Int, size: Int) => { (fileName: String) =>
     {
-      val files = backlogPaths.issueAttachmentDirectoryPath(path).listRecursively
+      val files = backlogPaths.issueAttachmentDirectoryPath(path).list
       files.find(file => file.name == fileName) match {
         case Some(filePath) =>
           attachmentService.postAttachment(filePath.pathAsString) match {
@@ -194,7 +194,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
   private[this] def totalSize(): Int = {
     val paths = IOUtil.directoryPaths(backlogPaths.issueDirectoryPath)
     paths.foldLeft(0) { (count, path) =>
-      count + path.listRecursively.size
+      count + path.list.size
     }
   }
 

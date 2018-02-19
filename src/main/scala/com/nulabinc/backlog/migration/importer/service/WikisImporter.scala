@@ -79,7 +79,7 @@ private[importer] class WikisImporter @Inject()(backlogPaths: BacklogPaths,
   }
 
   private[this] def toPath(attachment: BacklogAttachment, wikiDir: Path): Option[Path] = {
-    val files = backlogPaths.wikiAttachmentPath(wikiDir).listRecursively
+    val files = backlogPaths.wikiAttachmentPath(wikiDir).list
     files.find(file => file.name == attachment.name)
   }
 
