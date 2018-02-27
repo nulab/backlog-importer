@@ -83,7 +83,6 @@ private[importer] class ProjectImporter @Inject()(backlogPaths: BacklogPaths,
 
     removeVersion(propertyResolver)
     removeCategory(propertyResolver)
-    removeIssueType(propertyResolver)
     removeCustomField(propertyResolver)
 
     BacklogUnmarshaller.backlogCustomFieldSettings(backlogPaths).filter(!_.delete).foreach { customFieldSetting =>
@@ -187,20 +186,6 @@ private[importer] class ProjectImporter @Inject()(backlogPaths: BacklogPaths,
       for {
         issueCategoryId <- propertyResolver.optResolvedCategoryId(category.name)
       } yield issueCategoryService.remove(issueCategoryId)
-    }
-  }
-
-  private[this] def removeIssueType(propertyResolver: PropertyResolver): Unit = {
-    BacklogUnmarshaller.issueTypes(backlogPaths).filter(_.delete).foreach { issueType =>
-      for {
-        issueTypeId <- propertyResolver.optResolvedIssueTypeId(issueType.name)
-      } yield {
-        try {
-          issueTypeService.remove(issueTypeId, propertyResolver.tryDefaultIssueTypeId())
-        } catch {
-          case ex: Throwable => logger.warn(s"Remove issue type [${issueType.name}] failure. ${ex.getMessage}")
-        }
-      }
     }
   }
 
