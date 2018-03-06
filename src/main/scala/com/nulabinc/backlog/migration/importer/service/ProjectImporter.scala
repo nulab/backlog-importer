@@ -177,7 +177,13 @@ private[importer] class ProjectImporter @Inject()(backlogPaths: BacklogPaths,
     BacklogUnmarshaller.versions(backlogPaths).filter(_.delete).foreach { version =>
       for {
         versionId <- propertyResolver.optResolvedVersionId(version.name)
-      } yield versionService.remove(versionId)
+      } yield {
+        try {
+          versionService.remove(versionId)
+        } catch {
+          case ex: Throwable => logger.warn(s"Remove version [${version.name}] failed. ${ex.getMessage}")
+        }
+      }
     }
   }
 
@@ -185,7 +191,13 @@ private[importer] class ProjectImporter @Inject()(backlogPaths: BacklogPaths,
     BacklogUnmarshaller.issueCategories(backlogPaths).filter(_.delete).foreach { category =>
       for {
         issueCategoryId <- propertyResolver.optResolvedCategoryId(category.name)
-      } yield issueCategoryService.remove(issueCategoryId)
+      } yield {
+        try {
+          issueCategoryService.remove(issueCategoryId)
+        } catch {
+          case ex: Throwable => logger.warn(s"Remove category [${category.name}] failed. ${ex.getMessage}")
+        }
+      }
     }
   }
 
@@ -194,7 +206,13 @@ private[importer] class ProjectImporter @Inject()(backlogPaths: BacklogPaths,
       for {
         targetCustomFieldSetting <- propertyResolver.optResolvedCustomFieldSetting(backlogCustomFieldSetting.name)
         customFieldSettingId     <- targetCustomFieldSetting.optId
-      } yield customFieldSettingService.remove(customFieldSettingId)
+      } yield {
+        try {
+          customFieldSettingService.remove(customFieldSettingId)
+        } catch {
+          case ex: Throwable => logger.warn(s"Remove custom field [${backlogCustomFieldSetting.name}] failed. ${ex.getMessage}")
+        }
+      }
     }
 
   private[this] def buildPropertyResolver(): PropertyResolver = {
