@@ -95,7 +95,8 @@ private[importer] class ProjectImporter @Inject()(backlogPaths: BacklogPaths,
     def exists(group: BacklogGroup): Boolean = {
       groups.exists(_.name == group.name)
     }
-    val backlogGroups = BacklogUnmarshaller.groups(backlogPaths).filterNot(exists)
+//    val backlogGroups = BacklogUnmarshaller.groups(backlogPaths).filterNot(exists)
+    val backlogGroups = Seq.empty[BacklogGroup]
     val console       = (ProgressBar.progress _)(Messages("common.groups"), Messages("message.importing"), Messages("message.imported"))
     backlogGroups.zipWithIndex.foreach {
       case (backlogGroup, index) =>
