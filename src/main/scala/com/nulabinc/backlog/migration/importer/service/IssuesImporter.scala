@@ -8,7 +8,6 @@ import com.nulabinc.backlog.migration.common.convert.BacklogUnmarshaller
 import com.nulabinc.backlog.migration.common.domain.{BacklogAttachment, BacklogComment, BacklogIssue, BacklogProject}
 import com.nulabinc.backlog.migration.common.service._
 import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, IssueKeyUtil, Logging, _}
-import com.nulabinc.backlog4j.api.option.ImportDeleteAttachmentParams
 import com.osinka.i18n.Messages
 
 /**
