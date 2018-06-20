@@ -90,12 +90,7 @@ private[importer] class ProjectImporter @Inject()(backlogPaths: BacklogPaths,
     }
   }
 
-  private[this] def importGroup(propertyResolver: PropertyResolver) = {
-    val groups = groupService.allGroups()
-    def exists(group: BacklogGroup): Boolean = {
-      groups.exists(_.name == group.name)
-    }
-//    val backlogGroups = BacklogUnmarshaller.groups(backlogPaths).filterNot(exists)
+  private[this] def importGroup(propertyResolver: PropertyResolver): Unit = {
     val backlogGroups = Seq.empty[BacklogGroup]
     val console       = (ProgressBar.progress _)(Messages("common.groups"), Messages("message.importing"), Messages("message.imported"))
     backlogGroups.zipWithIndex.foreach {

@@ -22,22 +22,20 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
 
   private[this] val console = new IssueProgressBar()
 
-  def execute(project: BacklogProject, propertyResolver: PropertyResolver, fitIssueKey: Boolean) = {
+  def execute(project: BacklogProject, propertyResolver: PropertyResolver, fitIssueKey: Boolean): Unit = {
+    implicit val context: IssueContext = IssueContext(project, propertyResolver, fitIssueKey)
 
     ConsoleOut.println("""
       """.stripMargin)
 
     console.totalSize = totalSize()
 
-    implicit val context = IssueContext(project, propertyResolver, fitIssueKey)
-    val paths            = IOUtil.directoryPaths(backlogPaths.issueDirectoryPath).sortWith(_.name < _.name)
-    paths.zipWithIndex.foreach {
-      case (path, index) =>
-        loadDateDirectory(path, index)
-    }
+    IOUtil.directoryPaths(backlogPaths.issueDirectoryPath)
+      .sortWith(_.name < _.name)
+      .foreach(loadDateDirectory)
   }
 
-  private[this] def loadDateDirectory(path: Path, index: Int)(implicit ctx: IssueContext) = {
+  private[this] def loadDateDirectory(path: Path)(implicit ctx: IssueContext): Unit = {
     val jsonDirs = path.list.filter(_.isDirectory).toSeq.sortWith(compareIssueJsons)
     console.date = DateUtil.yyyymmddToSlashFormat(path.name)
     console.failed = 0
@@ -48,7 +46,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
     }
   }
 
-  private[this] def loadJson(path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
+  private[this] def loadJson(path: Path, index: Int, size: Int)(implicit ctx: IssueContext): Unit = {
     BacklogUnmarshaller.issue(backlogPaths.issueJson(path)) match {
       case Some(issue: BacklogIssue)     => createIssue(issue, path, index, size)
       case Some(comment: BacklogComment) => createComment(comment, path, index, size)
@@ -57,9 +55,9 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
     console.count = console.count + 1
   }
 
-  private[this] def createIssue(issue: BacklogIssue, path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
+  private[this] def createIssue(issue: BacklogIssue, path: Path, index: Int, size: Int)(implicit ctx: IssueContext): Unit = {
     val prevSuccessIssueId = ctx.optPrevIssueIndex
-    createDummyIssues(issue, index, size)
+    createDummyIssues(issue)
 
     if (issueService.exists(ctx.project.id, issue)) {
       ctx.excludeIssueIds += issue.id
@@ -83,21 +81,21 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
     }
   }
 
-  private[this] def createDummyIssues(issue: BacklogIssue, index: Int, size: Int)(implicit ctx: IssueContext): Unit = {
+  private[this] def createDummyIssues(issue: BacklogIssue)(implicit ctx: IssueContext): Unit = {
     val optIssueIndex = issue.optIssueKey.map(IssueKeyUtil.findIssueIndex)
     for {
       prevIssueIndex <- ctx.optPrevIssueIndex
       issueIndex     <- optIssueIndex
       if (prevIssueIndex + 1) != issueIndex
       if ctx.fitIssueKey
-    } yield ((prevIssueIndex + 1) until issueIndex).foreach(dummyIndex => createDummyIssue(dummyIndex, index, size))
+    } yield ((prevIssueIndex + 1) until issueIndex).foreach(dummyIndex => createDummyIssue(dummyIndex))
     ctx.optPrevIssueIndex = optIssueIndex
   }
 
-  private[this] def createDummyIssue(dummyIndex: Int, index: Int, size: Int)(implicit ctx: IssueContext) = {
+  private[this] def createDummyIssue(dummyIndex: Int)(implicit ctx: IssueContext): Unit = {
     val dummyIssue = issueService.createDummy(ctx.project.id, ctx.propertyResolver)
     issueService.delete(dummyIssue.getId)
-    logger.warn(s"${Messages("import.issue.create_dummy", s"${ctx.project.key}-${dummyIndex}")}")
+    logger.warn(s"${Messages("import.issue.create_dummy", s"${ctx.project.key}-$dummyIndex")}")
   }
 
   private[this] def createComment(comment: BacklogComment, path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
