@@ -22,7 +22,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
 
   private[this] val console = new IssueProgressBar()
 
-  def execute(project: BacklogProject, propertyResolver: PropertyResolver, fitIssueKey: Boolean) = {
+  def execute(project: BacklogProject, propertyResolver: PropertyResolver, fitIssueKey: Boolean): Unit = {
 
     ConsoleOut.println("""
       """.stripMargin)
@@ -37,7 +37,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
     }
   }
 
-  private[this] def loadDateDirectory(path: Path, index: Int)(implicit ctx: IssueContext) = {
+  private[this] def loadDateDirectory(path: Path, index: Int)(implicit ctx: IssueContext): Unit = {
     val jsonDirs = path.list.filter(_.isDirectory).toSeq.sortWith(compareIssueJsons)
     console.date = DateUtil.yyyymmddToSlashFormat(path.name)
     console.failed = 0
@@ -48,7 +48,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
     }
   }
 
-  private[this] def loadJson(path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
+  private[this] def loadJson(path: Path, index: Int, size: Int)(implicit ctx: IssueContext): Unit = {
     BacklogUnmarshaller.issue(backlogPaths.issueJson(path)) match {
       case Some(issue: BacklogIssue)     => createIssue(issue, path, index, size)
       case Some(comment: BacklogComment) => createComment(comment, path, index, size)
@@ -57,7 +57,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
     console.count = console.count + 1
   }
 
-  private[this] def createIssue(issue: BacklogIssue, path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
+  private[this] def createIssue(issue: BacklogIssue, path: Path, index: Int, size: Int)(implicit ctx: IssueContext): Unit = {
     val prevSuccessIssueId = ctx.optPrevIssueIndex
     createDummyIssues(issue, index, size)
 
@@ -152,7 +152,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
     }
   }
 
-  private[this] val postAttachment = (path: Path, index: Int, size: Int) => { (fileName: String) =>
+  private[this] val postAttachment = (path: Path, index: Int, size: Int) => { fileName: String =>
     {
       val files = backlogPaths.issueAttachmentDirectoryPath(path).list
       files.find(file => file.name == fileName) match {
