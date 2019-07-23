@@ -95,12 +95,17 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
 
   private[this] def createDummyIssues(issue: BacklogIssue, index: Int, size: Int)(implicit ctx: IssueContext): Unit = {
     val optIssueIndex = issue.optIssueKey.map(IssueKeyUtil.findIssueIndex)
+    val prevIssueIndex = ctx.optPrevIssueIndex.getOrElse(0)
+
     for {
-      prevIssueIndex <- ctx.optPrevIssueIndex
-      issueIndex     <- optIssueIndex
+      issueIndex <- optIssueIndex
       if (prevIssueIndex + 1) != issueIndex
       if ctx.fitIssueKey
-    } yield ((prevIssueIndex + 1) until issueIndex).foreach(dummyIndex => createDummyIssue(dummyIndex, index, size))
+    } yield {
+      (prevIssueIndex + 1) until issueIndex
+    }.foreach { dummyIndex =>
+      createDummyIssue(dummyIndex, index, size)
+    }
     ctx.optPrevIssueIndex = optIssueIndex
   }
 
