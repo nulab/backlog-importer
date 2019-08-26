@@ -1,14 +1,15 @@
 package com.nulabinc.backlog.migration.importer.service
 
-import javax.inject.Inject
-
 import better.files.{File => Path}
 import com.nulabinc.backlog.migration.common.conf.BacklogPaths
 import com.nulabinc.backlog.migration.common.convert.BacklogUnmarshaller
 import com.nulabinc.backlog.migration.common.domain.{BacklogAttachment, BacklogComment, BacklogIssue, BacklogProject}
 import com.nulabinc.backlog.migration.common.service._
 import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, IssueKeyUtil, Logging, _}
+import com.nulabinc.backlog.migration.importer.core.RetryException
+import com.nulabinc.backlog4j.BacklogAPIException
 import com.osinka.i18n.Messages
+import javax.inject.Inject
 
 /**
   * @author uchida
@@ -20,7 +21,11 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
                                                  attachmentService: AttachmentService)
     extends Logging {
 
+  import com.nulabinc.backlog.migration.importer.core.RetryUtil._
+
   private[this] val console = new IssueProgressBar()
+  private[this] val retryCount = 20
+  private[this] val retryInterval = 5000
 
   def execute(project: BacklogProject, propertyResolver: PropertyResolver, fitIssueKey: Boolean): Unit = {
     implicit val context: IssueContext = IssueContext(project, propertyResolver, fitIssueKey)
@@ -48,9 +53,14 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
 
   private[this] def loadJson(path: Path, index: Int, size: Int)(implicit ctx: IssueContext): Unit = {
     BacklogUnmarshaller.issue(backlogPaths.issueJson(path)) match {
-      case Some(issue: BacklogIssue)     => createIssue(issue, path, index, size)
-      case Some(comment: BacklogComment) => createComment(comment, path, index, size)
-      case _                             => None
+      case Some(issue: BacklogIssue) =>
+        retry(retryCount, retryInterval, classOf[BacklogAPIException]) {
+          createIssue(issue, path, index, size)
+        }
+      case Some(comment: BacklogComment) =>
+        createComment(comment, path, index, size)
+      case _ =>
+        None
     }
     console.count = console.count + 1
   }
@@ -83,12 +93,17 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
 
   private[this] def createDummyIssues(issue: BacklogIssue)(implicit ctx: IssueContext): Unit = {
     val optIssueIndex = issue.optIssueKey.map(IssueKeyUtil.findIssueIndex)
+    val prevIssueIndex = ctx.optPrevIssueIndex.getOrElse(0)
+
     for {
-      prevIssueIndex <- ctx.optPrevIssueIndex
-      issueIndex     <- optIssueIndex
+      issueIndex <- optIssueIndex
       if (prevIssueIndex + 1) != issueIndex
       if ctx.fitIssueKey
-    } yield ((prevIssueIndex + 1) until issueIndex).foreach(dummyIndex => createDummyIssue(dummyIndex))
+    } yield {
+      (prevIssueIndex + 1) until issueIndex
+    }.foreach { dummyIndex =>
+      createDummyIssue(dummyIndex)
+    }
     ctx.optPrevIssueIndex = optIssueIndex
   }
 
@@ -101,17 +116,30 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
   private[this] def createComment(comment: BacklogComment, path: Path, index: Int, size: Int)(implicit ctx: IssueContext) = {
 
     def updateComment(remoteIssueId: Long): Unit = {
-      commentService.update(
-        commentService.setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path, index, size)))(comment) match {
-        case Left(e) if Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.") =>
-          logger.warn(e.getMessage, e)
-        case Left(e) =>
+
+      val setUpdatedParam = retry(retryCount, retryInterval, classOf[BacklogAPIException]) {
+         commentService.setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path, index, size)) _
+      }
+
+      try {
+        retry(retryCount, retryInterval, classOf[BacklogAPIException]) {
+          commentService.update(setUpdatedParam)(comment) match {
+            case Left(e) if Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.") =>
+              logger.warn(e.getMessage, e)
+            case Left(e) =>
+              throw e
+            case Right(_) =>
+              ()
+          }
+        }
+      } catch {
+        case e: RetryException =>
           logger.error(e.getMessage, e)
           val issue = issueService.issueOfId(remoteIssueId)
-          console
-            .error(index + 1, size, s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
+          console.error(index + 1, size, s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
           console.failed += 1
-        case _ =>
+        case e =>
+          throw e
       }
     }
 
@@ -150,7 +178,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
     }
   }
 
-  private[this] val postAttachment = (path: Path, index: Int, size: Int) => { (fileName: String) =>
+  private[this] val postAttachment = (path: Path, index: Int, size: Int) => { fileName: String =>
     {
       val files = backlogPaths.issueAttachmentDirectoryPath(path).list
       files.find(file => file.name == fileName) match {
