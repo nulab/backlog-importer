@@ -140,7 +140,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
           val issue = issueService.issueOfId(remoteIssueId)
           console.error(index + 1, size, s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
           console.failed += 1
-        case e =>
+        case e: Throwable =>
           throw e
       }
     }
