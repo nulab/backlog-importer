@@ -159,12 +159,9 @@ private[importer] class ProjectImporter @Inject()(backlogPaths: BacklogPaths,
     }
   }
 
-  private[this] def importCustomField() = {
+  private[this] def importCustomField(): Unit = {
     val customFieldSettings = customFieldSettingService.allCustomFieldSettings()
-    def exists(setting: BacklogCustomFieldSetting): Boolean = {
-      customFieldSettings.exists(_.name == setting.name)
-    }
-    val backlogCustomFields = BacklogUnmarshaller.backlogCustomFieldSettings(backlogPaths).filterNot(exists)
+    val backlogCustomFields = customFieldSettings.filterNotExist(BacklogUnmarshaller.backlogCustomFieldSettings(backlogPaths))
     val console             = (ProgressBar.progress _)(Messages("common.custom_field"), Messages("message.importing"), Messages("message.imported"))
     backlogCustomFields.zipWithIndex.foreach {
       case (backlogCustomField, index) =>
