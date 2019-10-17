@@ -30,12 +30,12 @@ private[importer] class ProjectImporter @Inject()(backlogPaths: BacklogPaths,
                                                   priorityService: PriorityService)
     extends Logging {
 
-  def execute(fitIssueKey: Boolean) = {
+  def execute(fitIssueKey: Boolean, retryCount: Int) = {
     val project = BacklogUnmarshaller.project(backlogPaths)
     projectService.create(project) match {
       case Right(project) =>
         preExecute()
-        contents(project, fitIssueKey)
+        contents(project, fitIssueKey, retryCount)
         postExecute()
 
         ConsoleOut.outStream.print(ansi.cursorLeft(999).cursorUp(1).eraseLine(Ansi.Erase.ALL))
@@ -58,14 +58,14 @@ private[importer] class ProjectImporter @Inject()(backlogPaths: BacklogPaths,
     }
   }
 
-  private[this] def contents(project: BacklogProject, fitIssueKey: Boolean) = {
+  private[this] def contents(project: BacklogProject, fitIssueKey: Boolean, retryCount: Int) = {
     val propertyResolver = buildPropertyResolver()
 
     //Wiki
     wikisImporter.execute(project.id, propertyResolver)
 
     //Issue
-    issuesImporter.execute(project, propertyResolver, fitIssueKey)
+    issuesImporter.execute(project, propertyResolver, fitIssueKey, retryCount)
   }
 
   private[this] def preExecute() = {
