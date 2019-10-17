@@ -12,7 +12,7 @@ import com.osinka.i18n.Messages
   */
 object Boot extends Logging {
 
-  def execute(apiConfig: BacklogApiConfiguration, fitIssueKey: Boolean) = {
+  def execute(apiConfig: BacklogApiConfiguration, fitIssueKey: Boolean, retryCount: Int) = {
     try {
       val injector = Guice.createInjector(new BacklogModule(apiConfig))
       ConsoleOut.println(s"""
@@ -20,7 +20,7 @@ object Boot extends Logging {
                             |--------------------------------------------------""".stripMargin)
 
       val projectImporter = injector.getInstance(classOf[ProjectImporter])
-      projectImporter.execute(fitIssueKey)
+      projectImporter.execute(fitIssueKey, retryCount)
     } catch {
       case e: Throwable =>
         ConsoleOut.error(s"${Messages("cli.error.unknown")}:${e.getMessage}")
