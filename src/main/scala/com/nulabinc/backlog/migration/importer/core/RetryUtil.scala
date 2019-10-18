@@ -33,8 +33,10 @@ object RetryUtil extends Logging {
         case Right(r) => r
         case Left(e) =>
           if (shouldCatch(e)) {
-            val message = s"(${errors.size + 1} / $retryLimit) Retrying... ${e.getMessage}"
-            ConsoleOut.warning(message)
+            if (retryLimit > 0) {
+              val message = s"(${errors.size + 1} / $retryLimit) Retrying... ${e.getMessage}"
+              ConsoleOut.warning(message)
+            }
             if (errors.size < retryLimit - 1) {
               Thread.sleep(retryInterval)
               retry0(e :: errors, f)
