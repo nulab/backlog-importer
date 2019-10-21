@@ -24,11 +24,10 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
   import com.nulabinc.backlog.migration.importer.core.RetryUtil._
 
   private[this] val console = new IssueProgressBar()
-  private[this] val retryCount = 20
   private[this] val retryInterval = 5000
 
-  def execute(project: BacklogProject, propertyResolver: PropertyResolver, fitIssueKey: Boolean): Unit = {
-    implicit val context: IssueContext = IssueContext(project, propertyResolver, fitIssueKey)
+  def execute(project: BacklogProject, propertyResolver: PropertyResolver, fitIssueKey: Boolean, retryCount: Int): Unit = {
+    implicit val context = IssueContext(project, propertyResolver, fitIssueKey, retryCount)
 
     ConsoleOut.println("""
       """.stripMargin)
@@ -54,7 +53,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
   private[this] def loadJson(path: Path, index: Int, size: Int)(implicit ctx: IssueContext): Unit = {
     BacklogUnmarshaller.issue(backlogPaths.issueJson(path)) match {
       case Some(issue: BacklogIssue) =>
-        retry(retryCount, retryInterval, classOf[BacklogAPIException]) {
+        retry(ctx.retryCount, retryInterval, classOf[BacklogAPIException]) {
           createIssue(issue, path, index, size)
         }
       case Some(comment: BacklogComment) =>
@@ -117,12 +116,12 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
 
     def updateComment(remoteIssueId: Long): Unit = {
 
-      val setUpdatedParam = retry(retryCount, retryInterval, classOf[BacklogAPIException]) {
+      val setUpdatedParam = retry(ctx.retryCount, retryInterval, classOf[BacklogAPIException]) {
          commentService.setUpdateParam(remoteIssueId, ctx.propertyResolver, ctx.toRemoteIssueId, postAttachment(path, index, size)) _
       }
 
       try {
-        retry(retryCount, retryInterval, classOf[BacklogAPIException]) {
+        retry(ctx.retryCount, retryInterval, classOf[BacklogAPIException]) {
           commentService.update(setUpdatedParam)(comment) match {
             case Left(e) if Option(e.getMessage).getOrElse("").contains("Please change the status or post a comment.") =>
               logger.warn(e.getMessage, e)
@@ -138,7 +137,7 @@ private[importer] class IssuesImporter @Inject()(backlogPaths: BacklogPaths,
           val issue = issueService.issueOfId(remoteIssueId)
           console.error(index + 1, size, s"${Messages("import.error.failed.comment", issue.optIssueKey.getOrElse(issue.id.toString), e.getMessage)}")
           console.failed += 1
-        case e =>
+        case e: Throwable =>
           throw e
       }
     }
