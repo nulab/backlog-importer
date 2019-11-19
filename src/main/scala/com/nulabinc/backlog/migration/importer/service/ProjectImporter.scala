@@ -1,12 +1,12 @@
 package com.nulabinc.backlog.migration.importer.service
 
 import javax.inject.Inject
-
 import com.nulabinc.backlog.migration.common.conf.BacklogPaths
 import com.nulabinc.backlog.migration.common.convert.BacklogUnmarshaller
 import com.nulabinc.backlog.migration.common.domain._
 import com.nulabinc.backlog.migration.common.service.{PropertyResolver, _}
 import com.nulabinc.backlog.migration.common.utils.{ConsoleOut, Logging, ProgressBar}
+import com.nulabinc.backlog.migration.importer.core.ImportConfig
 import com.osinka.i18n.Messages
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.Ansi.ansi
@@ -30,12 +30,12 @@ private[importer] class ProjectImporter @Inject()(backlogPaths: BacklogPaths,
                                                   priorityService: PriorityService)
     extends Logging {
 
-  def execute(fitIssueKey: Boolean, retryCount: Int) = {
+  def execute(importConfig: ImportConfig) = {
     val project = BacklogUnmarshaller.project(backlogPaths)
     projectService.create(project) match {
       case Right(project) =>
         preExecute()
-        contents(project, fitIssueKey, retryCount)
+        contents(project, importConfig)
         postExecute()
 
         ConsoleOut.outStream.print(ansi.cursorLeft(999).cursorUp(1).eraseLine(Ansi.Erase.ALL))
@@ -58,14 +58,14 @@ private[importer] class ProjectImporter @Inject()(backlogPaths: BacklogPaths,
     }
   }
 
-  private[this] def contents(project: BacklogProject, fitIssueKey: Boolean, retryCount: Int) = {
+  private[this] def contents(project: BacklogProject, importConfig: ImportConfig): Unit = {
     val propertyResolver = buildPropertyResolver()
 
     //Wiki
     wikisImporter.execute(project.id, propertyResolver)
 
     //Issue
-    issuesImporter.execute(project, propertyResolver, fitIssueKey, retryCount)
+    issuesImporter.execute(project, propertyResolver, importConfig.fitIssueKey, importConfig.retryCount)
   }
 
   private[this] def preExecute() = {
