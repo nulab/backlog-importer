@@ -62,10 +62,14 @@ private[importer] class ProjectImporter @Inject()(backlogPaths: BacklogPaths,
     val propertyResolver = buildPropertyResolver()
 
     //Wiki
-    wikisImporter.execute(project.id, propertyResolver)
+    if (!importConfig.excludeOption.wiki) {
+      wikisImporter.execute(project.id, propertyResolver)
+    }
 
     //Issue
-    issuesImporter.execute(project, propertyResolver, importConfig.fitIssueKey, importConfig.retryCount)
+    if (!importConfig.excludeOption.issue) {
+      issuesImporter.execute(project, propertyResolver, importConfig.fitIssueKey, importConfig.retryCount)
+    }
   }
 
   private[this] def preExecute() = {
